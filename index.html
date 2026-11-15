@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Budget">
+<meta name="theme-color" content="#0f7b4f">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-180.png">
+<link rel="manifest" href="manifest.webmanifest">
+<title>Mon coach budget</title>
+<style>
+:root{
+  --bg:#f5f6f4; --card:#ffffff; --ink:#1c2321; --muted:#6b736f; --line:#e3e6e2;
+  --green:#0f7b4f; --green-soft:#e3f3ea; --orange:#c76a12; --orange-soft:#fbeedd;
+  --red:#c0392b; --red-soft:#fbe4e1; --blue:#2c5d8f; --blue-soft:#e3edf7;
+  --radius:14px;
+}
+@media (prefers-color-scheme: dark){
+  :root{ --bg:#121614; --card:#1b201e; --ink:#eef1ef; --muted:#9aa39e; --line:#2b322f;
+    --green:#3fbf86; --green-soft:#16302a; --orange:#f0a24f; --orange-soft:#33271a;
+    --red:#ef7a6c; --red-soft:#3a2120; --blue:#79a8d8; --blue-soft:#1b2a39; }
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);
+  font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+.wrap{max-width:640px;margin:0 auto;padding:calc(16px + env(safe-area-inset-top)) 14px calc(96px + env(safe-area-inset-bottom))}
+header h1{font-size:20px;margin:4px 0 2px;letter-spacing:-.01em}
+header .sub{color:var(--muted);font-size:13px}
+.status{font-size:12px;color:var(--muted);margin-top:4px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:14px;margin:12px 0}
+.card h2{font-size:15px;margin:0 0 10px}
+.hero{display:flex;justify-content:space-between;align-items:flex-end;gap:12px}
+.hero .big{font-size:32px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.hero .lbl{color:var(--muted);font-size:13px}
+.pill{display:inline-block;font-size:12px;padding:2px 8px;border-radius:999px;font-weight:600}
+.pill.g{background:var(--green-soft);color:var(--green)} .pill.o{background:var(--orange-soft);color:var(--orange)}
+.pill.r{background:var(--red-soft);color:var(--red)} .pill.b{background:var(--blue-soft);color:var(--blue)}
+.env{padding:10px 0;border-top:1px solid var(--line);cursor:pointer}
+.env:first-of-type{border-top:0}
+.env .row{display:flex;justify-content:space-between;gap:8px}
+.env .name{font-weight:600}
+.env .nums{font-variant-numeric:tabular-nums;color:var(--muted);font-size:13px}
+.bar{height:8px;background:var(--line);border-radius:99px;margin-top:6px;overflow:hidden}
+.bar>i{display:block;height:100%;background:var(--green);border-radius:99px}
+.bar>i.o{background:var(--orange)} .bar>i.r{background:var(--red)}
+label{display:block;font-size:12px;color:var(--muted);margin:8px 0 4px}
+input,select,textarea{width:100%;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);
+  border-radius:10px;padding:10px 11px}
+textarea{resize:vertical;min-height:44px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+button{font:inherit;border:0;border-radius:10px;padding:11px 14px;font-weight:600;cursor:pointer;
+  background:var(--green);color:#fff}
+button.ghost{background:transparent;color:var(--green);border:1px solid var(--line)}
+button.small{padding:6px 10px;font-size:13px}
+button.danger{background:transparent;color:var(--red);border:1px solid var(--line)}
+button:disabled{opacity:.5;cursor:default}
+.btnrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.list .item{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--line)}
+.list .item:first-child{border-top:0}
+.item .meta{font-size:12px;color:var(--muted)}
+.amt{font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap}
+.check{display:flex;gap:10px;align-items:flex-start;padding:7px 0}
+.check input{width:20px;height:20px;margin-top:1px;flex:none}
+.verdict{margin-top:10px;padding:10px 12px;border-radius:10px;font-size:14px}
+.verdict.g{background:var(--green-soft);color:var(--green)}
+.verdict.o{background:var(--orange-soft);color:var(--orange)}
+.verdict.r{background:var(--red-soft);color:var(--red)}
+.muted{color:var(--muted)} .small{font-size:13px}
+nav.tabs{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);
+  display:flex;justify-content:center;padding:6px 6px calc(6px + env(safe-area-inset-bottom))}
+nav.tabs button{flex:1;max-width:160px;background:transparent;color:var(--muted);font-size:12px;padding:6px 4px;border-radius:10px}
+nav.tabs button .ic{display:block;font-size:19px;line-height:1.1}
+nav.tabs button.on{color:var(--green);background:var(--green-soft)}
+section{display:none} section.on{display:block}
+.chat{display:flex;flex-direction:column;gap:8px;max-height:52vh;overflow:auto;padding:2px}
+.msg{padding:9px 12px;border-radius:12px;white-space:pre-wrap;max-width:92%}
+.msg.u{align-self:flex-end;background:var(--green);color:#fff}
+.msg.a{align-self:flex-start;background:var(--bg);border:1px solid var(--line)}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+.chips button{background:var(--blue-soft);color:var(--blue);font-size:13px;padding:7px 10px;font-weight:500}
+.debt .top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.debt{padding:10px 0;border-top:1px solid var(--line)} .debt:first-child{border-top:0}
+.toast{position:fixed;left:50%;bottom:84px;transform:translateX(-50%);background:var(--ink);color:var(--bg);
+  padding:9px 14px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9}
+.toast.on{opacity:1}
+.empty{color:var(--muted);font-size:14px;padding:6px 0}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:flex-end;justify-content:center;z-index:8}
+.modal.on{display:flex}
+.modal .sheet{background:var(--card);width:100%;max-width:640px;border-radius:16px 16px 0 0;padding:16px 14px calc(16px + env(safe-area-inset-bottom))}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Mon coach budget</h1>
+    <div class="sub" id="weekLabel"></div>
+    <div class="status" id="status">Chargement…</div>
+  </header>
+
+  <!-- SEMAINE -->
+  <section id="t-semaine" class="on">
+    <div class="card" id="welcome" style="display:none">
+      <h2>Bienvenue 👋</h2>
+      <div class="small">Pour commencer, va dans l'onglet <b>Plus</b> et colle ton code de configuration.</div>
+    </div>
+    <div class="card" id="bannerCard" style="display:none;border-color:var(--orange);background:var(--orange-soft)">
+      <div id="bannerText" style="color:var(--orange);font-weight:600;white-space:pre-wrap"></div>
+    </div>
+    <div class="card" id="schedCard" style="display:none">
+      <h2>Paiements à venir</h2>
+      <div id="schedList"></div>
+    </div>
+    <div class="card">
+      <div class="hero">
+        <div>
+          <div class="lbl">Il te reste pour la semaine</div>
+          <div class="big" id="leftTotal">—</div>
+        </div>
+        <div style="text-align:right">
+          <div class="lbl">Prochaine paie</div>
+          <div id="nextPay" style="font-weight:600"></div>
+        </div>
+      </div>
+      <div class="bar" style="margin-top:12px"><i id="leftBar"></i></div>
+      <div class="small muted" id="leftNote" style="margin-top:6px"></div>
+    </div>
+
+    <div class="card">
+      <h2>Ajouter une dépense</h2>
+      <div class="grid2">
+        <div><label for="exAmt">Montant ($)</label><input id="exAmt" type="number" inputmode="decimal" step="0.01" min="0" placeholder="0,00"></div>
+        <div><label for="exEnv">Enveloppe</label><select id="exEnv"></select></div>
+      </div>
+      <label for="exNote">Note (facultatif)</label>
+      <input id="exNote" type="text" placeholder="Ex. IGA, plein d'essence, souper…">
+      <div class="btnrow"><button id="exAdd">Ajouter</button></div>
+    </div>
+
+    <div class="card">
+      <h2>Mes enveloppes de la semaine</h2>
+      <div id="envList"></div>
+    </div>
+
+    <div class="card">
+      <h2>Le jour de la paie (jeudi)</h2>
+      <div id="payChecklist"></div>
+    </div>
+
+    <div class="card">
+      <h2>Dépenses de la semaine</h2>
+      <div class="list" id="weekExpenses"></div>
+    </div>
+  </section>
+
+  <!-- SORTIE -->
+  <section id="t-sortie">
+    <div class="card">
+      <h2>Est-ce que je peux me le permettre ?</h2>
+      <div class="grid2">
+        <div><label for="ckAmt">Montant ($)</label><input id="ckAmt" type="number" inputmode="decimal" step="0.01" min="0" placeholder="0,00"></div>
+        <div><label for="ckEnv">Ça va dans</label><select id="ckEnv"></select></div>
+      </div>
+      <div id="ckOut"></div>
+    </div>
+
+    <div class="card">
+      <h2>Planifier une sortie</h2>
+      <label for="plName">Quoi ?</label>
+      <input id="plName" type="text" placeholder="Ex. Souper fête de Max, show, bar samedi…">
+      <div class="grid2">
+        <div><label for="plDate">Quand ?</label><input id="plDate" type="date"></div>
+        <div><label for="plCost">Budget max ($)</label><input id="plCost" type="number" inputmode="decimal" step="1" min="0" placeholder="0"></div>
+      </div>
+      <div class="btnrow"><button id="plAdd">Planifier</button></div>
+      <div class="small muted" style="margin-top:8px">L'appli te dit combien mettre de côté chaque semaine d'ici là, pour que la sortie ne finisse pas sur la carte de crédit.</div>
+    </div>
+
+    <div class="card">
+      <h2>Mes sorties prévues</h2>
+      <div id="planList"></div>
+    </div>
+
+    <div class="card">
+      <h2>Avant de sortir</h2>
+      <div id="outChecklist"></div>
+      <div class="btnrow"><button class="ghost small" id="outReset">Tout décocher</button></div>
+    </div>
+  </section>
+
+  <!-- DETTES -->
+  <section id="t-dettes">
+    <div class="card">
+      <div class="hero">
+        <div><div class="lbl">Dettes totales</div><div class="big" id="debtTotal">—</div></div>
+        <div style="text-align:right"><div class="lbl">Remboursé depuis le départ</div><div id="debtPaid" style="font-weight:600"></div></div>
+      </div>
+      <div class="bar" style="margin-top:12px"><i id="debtBar"></i></div>
+      <div class="small muted" id="debtNote" style="margin-top:6px"></div>
+    </div>
+    <div class="card">
+      <h2>Ordre de remboursement</h2>
+      <div id="debtList"></div>
+    </div>
+    <div class="card">
+      <h2>Ma stratégie</h2>
+      <ol class="small" id="strategyList" style="margin:0;padding-left:20px"></ol>
+    </div>
+  </section>
+
+  <!-- PLUS -->
+  <section id="t-coach">
+    <div class="card">
+      <h2>Demander conseil à Claude</h2>
+      <div class="small muted">Copie le résumé de ta semaine (enveloppes, sorties, dettes, paiements à venir), puis colle-le dans Claude avec ta question.</div>
+      <div class="btnrow"><button id="copySummary">Copier mon résumé</button><a href="https://claude.ai/new" style="align-self:center;color:var(--green);font-weight:600">Ouvrir Claude ↗</a></div>
+    </div>
+    <div class="card">
+      <h2>Configuration</h2>
+      <div class="small muted">Colle ici le code de configuration que Claude t'a donné (tes dettes, tes enveloppes et ton plan). Ça remplace la configuration actuelle, sans toucher à tes dépenses.</div>
+      <label for="importBox">Code de configuration</label>
+      <textarea id="importBox" rows="4" placeholder="{ ... }"></textarea>
+      <div class="btnrow"><button id="importBtn">Importer</button></div>
+    </div>
+    <div class="card">
+      <h2>Sauvegarde</h2>
+      <div class="small muted">Tes données restent seulement sur ce téléphone. Copie une sauvegarde de temps en temps (dans Notes ou en message à Claude) pour ne rien perdre.</div>
+      <div class="btnrow"><button class="ghost" id="exportBtn">Copier ma sauvegarde complète</button></div>
+      <label for="restoreBox">Restaurer une sauvegarde</label>
+      <textarea id="restoreBox" rows="3" placeholder="Colle une sauvegarde complète ici"></textarea>
+      <div class="btnrow"><button class="ghost" id="restoreBtn">Restaurer</button></div>
+      <div class="small muted" id="plusNote" style="margin-top:8px"></div>
+    </div>
+  </section>
+</div>
+
+<nav class="tabs">
+  <button data-t="semaine" class="on"><span class="ic">📅</span>Semaine</button>
+  <button data-t="sortie"><span class="ic">🎉</span>Sortie</button>
+  <button data-t="dettes"><span class="ic">💳</span>Dettes</button>
+  <button data-t="coach"><span class="ic">⚙️</span>Plus</button>
+</nav>
+
+<div class="modal" id="modal"><div class="sheet" id="sheet"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+"use strict";
+// ---------- Defaults (used only until the saved profile loads) ----------
+const DEFAULT_PROFILE = {
+  configured: false,
+  incomeWeekly: 0,
+  envelopes: [
+    {id:"epicerie",  name:"Épicerie",               weekly:115},
+    {id:"essence",   name:"Essence",                weekly:35},
+    {id:"restos",    name:"Restos & livraison",     weekly:46},
+    {id:"saq",       name:"SAQ & SQDC",             weekly:23},
+    {id:"magasinage",name:"Vêtements & magasinage", weekly:23},
+    {id:"sorties",   name:"Sorties & loisirs",      weekly:23},
+    {id:"transport", name:"Uber, Lyft, STM",        weekly:23},
+    {id:"divers",    name:"Divers & imprévus",      weekly:23}
+  ],
+  debtWeekly: 0,
+  debts: [],
+  startDebt: 0,
+  checklist: {}
+};
+const OUT_CHECKLIST = [
+  "J'ai fixé mon budget max pour la soirée",
+  "J'ai mangé avant de partir (ou le resto est prévu dans le budget)",
+  "Mon transport aller-retour est prévu (auto, STM, covoit)",
+  "Les cartes de crédit restent à la maison : seulement la carte de débit",
+  "J'ai décidé d'avance combien de consommations",
+  "Si quelqu'un propose un extra, je peux dire non sans me justifier"
+];
+
+// ---------- Helpers ----------
+const $ = id => document.getElementById(id);
+const money = n => (Math.round((+n||0)*100)/100).toLocaleString("fr-CA",{style:"currency",currency:"CAD"});
+const pad = n => String(n).padStart(2,"0");
+const ymd = d => d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+const parseYmd = s => { const [y,m,d]=s.split("-").map(Number); return new Date(y,m-1,d); };
+function weekStart(d){ const x=new Date(d.getFullYear(),d.getMonth(),d.getDate()); const back=(x.getDay()-4+7)%7; x.setDate(x.getDate()-back); return x; }
+function addDays(d,n){ const x=new Date(d); x.setDate(x.getDate()+n); return x; }
+const fmtDay = d => d.toLocaleDateString("fr-CA",{weekday:"short",day:"numeric",month:"short"});
+function toast(msg){ const t=$("toast"); t.textContent=msg; t.classList.add("on"); clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove("on"),1800); }
+function el(tag, attrs, ...kids){ const e=document.createElement(tag); if(attrs) for(const k in attrs){ if(k==="class") e.className=attrs[k]; else if(k.startsWith("on")) e.addEventListener(k.slice(2),attrs[k]); else e.setAttribute(k,attrs[k]); } for(const k of kids){ if(k==null) continue; e.append(k.nodeType?k:document.createTextNode(String(k))); } return e; }
+const uidGen = () => Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+
+// ---------- State ----------
+const S = { profile: structuredClone(DEFAULT_PROFILE), expenses: [], plans: [], loaded:false };
+let store = null; // set to db or local adapter
+
+// Local fallback (one browser only)
+function localAdapter(){
+  const K="coachBudget.v1";
+  let data; try{ data=JSON.parse(localStorage.getItem(K)||"null"); }catch(e){ data=null; }
+  data = data || {profile:null, expenses:[], plans:[]};
+  const save=()=>{ try{ localStorage.setItem(K,JSON.stringify(data)); }catch(e){} };
+  return {
+    kind:"local",
+    start(){ if(data.profile) S.profile=data.profile; S.expenses=data.expenses; S.plans=data.plans; S.loaded=true; render(); },
+    async saveProfile(p){ data.profile=p; save(); },
+    async addExpense(e){ data.expenses.push(e); S.expenses=data.expenses; save(); render(); },
+    async delExpense(id){ data.expenses=data.expenses.filter(x=>x.id!==id); S.expenses=data.expenses; save(); render(); },
+    async savePlan(p){ const i=data.plans.findIndex(x=>x.id===p.id); if(i>=0) data.plans[i]=p; else data.plans.push(p); S.plans=data.plans; save(); render(); },
+    async delPlan(id){ data.plans=data.plans.filter(x=>x.id!==id); S.plans=data.plans; save(); render(); }
+  };
+}
+
+function dbAdapter(db, uid){
+  const profRef = db.doc("data/users/"+uid+"/profile");
+  const expCol = profRef.collection("expenses");
+  const planCol = profRef.collection("plans");
+  let got = {p:false,e:false,pl:false};
+  const timer = setTimeout(()=>{ if(!(got.p&&got.e&&got.pl)) setStatus("Tes données ne répondent pas encore. Vérifie ta connexion."); },10000);
+  const done = ()=>{ if(got.p&&got.e&&got.pl){ clearTimeout(timer); S.loaded=true; setStatus("Synchronisé sur tous tes appareils ✓"); } render(); };
+  const onErr = e => { clearTimeout(timer); setStatus("Erreur de synchronisation ("+(e&&e.code||"?")+")."); };
+  return {
+    kind:"db",
+    start(){
+      profRef.onSnapshot(s=>{ if(s.exists){ const d=s.data(); S.profile=Object.assign(structuredClone(DEFAULT_PROFILE), structuredClone(d)); } if(!s.metadata.fromCache) got.p=true; done(); }, onErr);
+      const since = ymd(addDays(new Date(),-120));
+      expCol.where("date",">=",since).onSnapshot(s=>{ S.expenses=s.docs.map(d=>Object.assign({id:d.id},d.data())); if(!s.metadata.fromCache) got.e=true; done(); }, onErr);
+      planCol.onSnapshot(s=>{ S.plans=s.docs.map(d=>Object.assign({id:d.id},d.data())); if(!s.metadata.fromCache) got.pl=true; done(); }, onErr);
+    },
+    async saveProfile(p){ await profRef.set(p); },
+    async addExpense(e){ const {id,...rest}=e; await expCol.doc(id).set(rest); },
+    async delExpense(id){ await expCol.doc(id).delete(); },
+    async savePlan(p){ const {id,...rest}=p; await planCol.doc(id).set(rest); },
+    async delPlan(id){ await planCol.doc(id).delete(); }
+  };
+}
+function setStatus(t){ $("status").textContent=t; }
+
+let profileWriting = Promise.resolve();
+function saveProfile(){ const p=structuredClone(S.profile); profileWriting = profileWriting.then(()=>store.saveProfile(p)).catch(err=>{ toast("Pas pu enregistrer"); console.error(err); }); return profileWriting; }
+
+// ---------- Derived ----------
+function thisWeek(){ const ws=weekStart(new Date()); return {start:ws, end:addDays(ws,6), key:ymd(ws)}; }
+function weekExpenses(){ const w=thisWeek(); const a=ymd(w.start), b=ymd(w.end); return S.expenses.filter(e=>!e.plan && e.date>=a && e.date<=b); }
+function envStats(){
+  const ex=weekExpenses();
+  return S.profile.envelopes.map(env=>{ const spent=ex.filter(e=>e.env===env.id).reduce((s,e)=>s+(+e.amount||0),0); return Object.assign({},env,{spent,left:env.weekly-spent}); });
+}
+function weeksUntil(dateStr){ const days=Math.ceil((parseYmd(dateStr)-new Date(new Date().toDateString()))/86400000); return Math.max(1, Math.ceil((days+1)/7)); }
+function planSpent(p){ return S.expenses.filter(e=>e.plan===p.id).reduce((s,e)=>s+(+e.amount||0),0); }
+
+// ---------- Render ----------
+function fillEnvSelect(sel, withPlans){
+  const cur=sel.value; sel.innerHTML="";
+  for(const e of S.profile.envelopes) sel.append(el("option",{value:e.id},e.name));
+  if(withPlans){ for(const p of upcomingPlans()) sel.append(el("option",{value:"plan:"+p.id},"Sortie prévue : "+p.name)); }
+  if([...sel.options].some(o=>o.value===cur)) sel.value=cur;
+}
+function upcomingPlans(){ const today=ymd(addDays(new Date(),-1)); return S.plans.filter(p=>p.date>=today).sort((a,b)=>a.date.localeCompare(b.date)); }
+
+function render(){
+  const w=thisWeek();
+  $("weekLabel").textContent="Semaine du "+fmtDay(w.start)+" au "+fmtDay(w.end);
+  $("nextPay").textContent=fmtDay(addDays(w.start,7));
+  fillEnvSelect($("exEnv"),true); fillEnvSelect($("ckEnv"),false);
+  // hero
+  const st=envStats(); const budget=st.reduce((s,e)=>s+e.weekly,0); const left=st.reduce((s,e)=>s+e.left,0);
+  $("leftTotal").textContent=money(left);
+  $("leftTotal").style.color = left<0?"var(--red)":"";
+  const pct=budget>0?Math.max(0,Math.min(100,(budget-left)/budget*100)):0;
+  const lb=$("leftBar"); lb.style.width=pct+"%"; lb.className=pct>100||left<0?"r":pct>80?"o":"";
+  const daysLeft = 7 - Math.round((new Date(new Date().toDateString())-w.start)/86400000);
+  $("leftNote").textContent = left<0 ? "Tu as dépassé ton budget de la semaine de "+money(-left)+". On arrête les extras jusqu'à jeudi."
+    : "Environ "+money(left/Math.max(1,daysLeft))+" par jour pour les "+daysLeft+" jours qui restent. Ce qui n'est pas dépensé jeudi va sur la dette.";
+  // envelopes
+  const L=$("envList"); L.innerHTML="";
+  for(const e of st){
+    const p = e.weekly>0? e.spent/e.weekly*100 : (e.spent>0?101:0);
+    const cls = p>100?"r":p>80?"o":"";
+    const tag = e.left<0? el("span",{class:"pill r"},"Dépassé de "+money(-e.left)) : el("span",{class:"pill "+(p>80?"o":"g")},"Reste "+money(e.left));
+    L.append(el("div",{class:"env",onclick:()=>{ $("exEnv").value=e.id; $("exAmt").focus(); window.scrollTo({top:0,behavior:"smooth"}); }},
+      el("div",{class:"row"}, el("span",{class:"name"},e.name), tag),
+      el("div",{class:"nums"}, money(e.spent)+" dépensés sur "+money(e.weekly)),
+      el("div",{class:"bar"}, el("i",{class:cls,style:"width:"+Math.min(100,p)+"%"}))
+    ));
+  }
+  L.append(el("div",{class:"btnrow"}, el("button",{class:"ghost small",onclick:editEnvelopes},"Modifier les montants")));
+  // pay checklist
+  const ck=S.profile.checklist[w.key]||{};
+  const items=[
+    ["transfer","Transférer "+money(budget)+" (mes enveloppes) dans le compte épargne"],
+    S.profile.debtWeekly>0 ? ["debt","Envoyer "+money(S.profile.debtWeekly)+" sur la dette prioritaire"] : null,
+    ["share","Les frais partagés avancés pour nous deux m'ont été remboursés"],
+    ["nocc","Aucun achat sur les cartes de crédit cette semaine"]
+  ];
+  const PC=$("payChecklist"); PC.innerHTML="";
+  for(const it of items){ if(!it) continue; const [k,txt]=it;
+    const id="pc_"+k; const box=el("input",{type:"checkbox",id});
+    box.checked=!!ck[k];
+    box.addEventListener("change",()=>{ const c=Object.assign({},S.profile.checklist[w.key]||{}); c[k]=box.checked; S.profile.checklist=Object.assign({},S.profile.checklist,{[w.key]:c}); pruneChecklist(); saveProfile(); });
+    PC.append(el("div",{class:"check"}, box, el("label",{for:id,style:"margin:0;color:var(--ink);font-size:14px"},txt)));
+  }
+  // week expenses
+  const WE=$("weekExpenses"); WE.innerHTML="";
+  const ex=S.expenses.filter(e=>e.date>=ymd(w.start)&&e.date<=ymd(w.end)).sort((a,b)=>(b.date+(b.ts||"")).localeCompare(a.date+(a.ts||"")));
+  if(!ex.length) WE.append(el("div",{class:"empty"},"Aucune dépense cette semaine pour l'instant."));
+  for(const e of ex){
+    const envName = e.plan ? "Sortie : "+((S.plans.find(p=>p.id===e.plan)||{}).name||"prévue") : ((S.profile.envelopes.find(x=>x.id===e.env)||{}).name||e.env);
+    WE.append(el("div",{class:"item"},
+      el("div",null, el("div",null,e.note||envName), el("div",{class:"meta"},fmtDay(parseYmd(e.date))+" · "+envName)),
+      el("div",{style:"display:flex;gap:8px;align-items:center"}, el("span",{class:"amt"},money(e.amount)),
+        el("button",{class:"danger small","aria-label":"Supprimer",onclick:()=>{ store.delExpense(e.id).catch(()=>toast("Pas pu supprimer")); }},"✕"))
+    ));
+  }
+  renderBanner(); renderSchedule(); renderStrategy();
+  renderCheck(); renderPlans(); renderOutChecklist(); renderDebts(); renderChips();
+}
+function renderStrategy(){ const L=$("strategyList"); L.innerHTML=""; const s=S.profile.strategy||["Aucun achat sur les cartes de crédit.","Paiement minimum sur toutes les dettes, sauf la plus chère.","Tout le surplus sur la dette au taux le plus élevé."]; for(const t of s) L.append(el("li",null,t)); }
+function renderBanner(){
+  const b=S.profile.banner, today=ymd(new Date());
+  const show = b && b.text && (!b.until || b.until>=today);
+  $("bannerCard").style.display=show?"":"none";
+  if(show) $("bannerText").textContent=b.text;
+}
+function renderSchedule(){
+  const items=(S.profile.schedule||[]).slice().sort((a,b)=>a.date.localeCompare(b.date));
+  const L=$("schedList"); L.innerHTML="";
+  $("schedCard").style.display=items.length?"":"none";
+  const today=ymd(new Date());
+  for(const s of items){
+    const id="sc_"+s.id; const box=el("input",{type:"checkbox",id}); box.checked=!!s.done;
+    box.addEventListener("change",()=>{ S.profile.schedule=S.profile.schedule.map(x=>x.id===s.id?Object.assign({},x,{done:box.checked}):x); render(); saveProfile(); });
+    const late=!s.done && s.date<today;
+    L.append(el("div",{class:"check"}, box,
+      el("label",{for:id,style:"margin:0;color:var(--ink);font-size:14px;flex:1"+(s.done?";text-decoration:line-through;opacity:.6":"")},
+        el("div",null, el("b",null,fmtDay(parseYmd(s.date))), " · ", s.label),
+        s.note? el("div",{class:"small muted"},s.note):null),
+      el("span",{class:"amt",style:late?"color:var(--red)":""}, s.amount!=null?money(s.amount):"")));
+  }
+}
+function pruneChecklist(){ const keys=Object.keys(S.profile.checklist).sort(); while(keys.length>8){ delete S.profile.checklist[keys.shift()]; } }
+
+function renderCheck(){
+  const out=$("ckOut"); out.innerHTML="";
+  const amt=parseFloat($("ckAmt").value); if(!(amt>0)) return;
+  const e=envStats().find(x=>x.id===$("ckEnv").value); if(!e) return;
+  const totalLeft=envStats().reduce((s,x)=>s+x.left,0);
+  let cls,msg;
+  if(amt<=e.left*0.8){ cls="g"; msg="Oui. Il restera "+money(e.left-amt)+" dans « "+e.name+" » cette semaine."; }
+  else if(amt<=e.left){ cls="o"; msg="Oui, mais tout juste : il restera "+money(e.left-amt)+" dans « "+e.name+" » jusqu'à jeudi."; }
+  else if(amt<=totalLeft){ cls="o"; msg="Pas dans « "+e.name+" » (il reste "+money(Math.max(0,e.left))+"). Tu pourrais prendre "+money(amt-Math.max(0,e.left))+" dans une autre enveloppe, mais ça veut dire te priver ailleurs. Mieux : le planifier pour plus tard."; }
+  else { cls="r"; msg="Non. Ça dépasse tout ce qu'il te reste cette semaine ("+money(totalLeft)+"). Planifie-le dans l'onglet Sortie et mets de l'argent de côté d'ici là, sans carte de crédit."; }
+  out.append(el("div",{class:"verdict "+cls},msg));
+}
+
+function renderPlans(){
+  const L=$("planList"); L.innerHTML="";
+  const plans=S.plans.slice().sort((a,b)=>a.date.localeCompare(b.date));
+  if(!plans.length){ L.append(el("div",{class:"empty"},"Aucune sortie prévue. Planifie la prochaine dès que tu la connais.")); return; }
+  const today=ymd(new Date());
+  for(const p of plans){
+    const saved=+p.saved||0, cost=+p.cost||0, spent=planSpent(p);
+    const past=p.date<today;
+    const need=Math.max(0,cost-saved); const wk=weeksUntil(p.date); const perWeek=need/wk;
+    const pct=cost>0?Math.min(100,saved/cost*100):0;
+    const box=el("div",{class:"debt"},
+      el("div",{class:"top"}, el("div",null, el("div",{style:"font-weight:600"},p.name), el("div",{class:"meta small muted"},fmtDay(parseYmd(p.date))+" · budget "+money(cost))),
+        past ? el("span",{class:"pill b"},"Passée") : need<=0 ? el("span",{class:"pill g"},"Prêt ✓") : el("span",{class:"pill o"},money(perWeek)+"/sem.")),
+      el("div",{class:"bar"}, el("i",{style:"width:"+pct+"%"})),
+      el("div",{class:"small muted",style:"margin-top:4px"}, "Mis de côté : "+money(saved)+" / "+money(cost)+(spent>0?" · Dépensé : "+money(spent)+(spent>cost?" (dépassé de "+money(spent-cost)+")":""):"")+(past||need<=0?"":" · Il manque "+money(need)+" sur "+wk+" semaine"+(wk>1?"s":""))),
+      el("div",{class:"btnrow"},
+        past?null:el("button",{class:"small",onclick:()=>putAside(p, Math.round(perWeek*100)/100 || 0)},"Mettre de côté"),
+        past?null:el("button",{class:"ghost small",onclick:()=>prepWithCoach(p)},"Préparer avec le coach"),
+        el("button",{class:"danger small",onclick:()=>{ store.delPlan(p.id).catch(()=>toast("Pas pu supprimer")); }},"Supprimer"))
+    );
+    L.append(box);
+  }
+}
+function putAside(p, suggested){
+  openSheet(sheet=>{
+    const amt=el("input",{type:"number",inputmode:"decimal",step:"0.01",min:"0",value:suggested>0?suggested:""});
+    const sel=el("select"); for(const e of S.profile.envelopes) sel.append(el("option",{value:e.id},e.name)); sel.value="sorties";
+    sheet.append(el("h2",{style:"margin:0 0 6px;font-size:16px"},"Mettre de côté pour « "+p.name+" »"),
+      el("div",{class:"small muted"},"Le montant est retiré d'une enveloppe de cette semaine et réservé pour la sortie."),
+      el("label",null,"Montant ($)"), amt, el("label",null,"Pris dans l'enveloppe"), sel,
+      el("div",{class:"btnrow"}, el("button",{onclick:async()=>{
+        const v=parseFloat(amt.value); if(!(v>0)) return;
+        closeSheet();
+        try{
+          await store.addExpense({id:uidGen(),date:ymd(new Date()),ts:new Date().toISOString(),amount:v,env:sel.value,note:"Réserve : "+p.name});
+          await store.savePlan(Object.assign({},p,{saved:(+p.saved||0)+v}));
+          toast(money(v)+" mis de côté");
+        }catch(e){ toast("Pas pu enregistrer"); }
+      }},"Confirmer"), el("button",{class:"ghost",onclick:closeSheet},"Annuler")));
+  });
+}
+
+function renderOutChecklist(){
+  const C=$("outChecklist"); C.innerHTML="";
+  let st; try{ st=JSON.parse(localStorage.getItem("coachOut")||"{}"); }catch(e){ st={}; }
+  OUT_CHECKLIST.forEach((t,i)=>{
+    const id="oc"+i; const b=el("input",{type:"checkbox",id}); b.checked=!!st[i];
+    b.addEventListener("change",()=>{ st[i]=b.checked; try{ localStorage.setItem("coachOut",JSON.stringify(st)); }catch(e){} });
+    C.append(el("div",{class:"check"}, b, el("label",{for:id,style:"margin:0;color:var(--ink);font-size:14px"},t)));
+  });
+}
+
+function renderDebts(){
+  const debts=(S.profile.debts||[]);
+  const total=debts.reduce((s,d)=>s+(+d.balance||0),0);
+  const start=+S.profile.startDebt||total;
+  $("debtTotal").textContent=money(total);
+  const paid=Math.max(0,start-total);
+  $("debtPaid").textContent=money(paid);
+  $("debtBar").style.width=(start>0?Math.min(100,paid/start*100):0)+"%";
+  const interest=debts.reduce((s,d)=>s+(+d.balance||0)*(+d.rate||0)/100/12,0);
+  $("debtNote").textContent = debts.length? "Les intérêts te coûtent environ "+money(interest)+" par mois en ce moment. Mets les soldes à jour après chaque paiement." : "Ajoute tes dettes pour suivre ta progression.";
+  const L=$("debtList"); L.innerHTML="";
+  const order=debts.slice().sort((a,b)=>(a.plan===b.plan?0:a.plan?1:-1)||(+b.rate)-(+a.rate));
+  order.forEach((d,i)=>{
+    const role = d.plan ? "Paiement fixe seulement" : i===0 ? "Priorité : tout le surplus ici" : "Paiement minimum";
+    L.append(el("div",{class:"debt"},
+      el("div",{class:"top"}, el("div",null, el("div",{style:"font-weight:600"},d.name), el("div",{class:"small muted"},(+d.rate||0)+" % · min. "+money(d.min)+(d.due?" · échéance "+fmtDay(parseYmd(d.due)):""))),
+        el("div",{style:"text-align:right"}, el("div",{class:"amt"},money(d.balance)), el("span",{class:"pill "+(d.plan?"b":i===0?"r":"o")},role))),
+      el("div",{class:"btnrow"}, el("button",{class:"ghost small",onclick:()=>editDebt(d)},"Mettre à jour"))
+    ));
+  });
+  if(!debts.length) L.append(el("div",{class:"empty"},"Aucune dette enregistrée."));
+}
+function editDebt(d){
+  openSheet(sheet=>{
+    const bal=el("input",{type:"number",inputmode:"decimal",step:"0.01",value:d.balance});
+    const min=el("input",{type:"number",inputmode:"decimal",step:"0.01",value:d.min});
+    const due=el("input",{type:"date",value:d.due||""});
+    sheet.append(el("h2",{style:"margin:0 0 6px;font-size:16px"},d.name),
+      el("label",null,"Solde actuel ($)"), bal, el("div",{class:"grid2"}, el("div",null,el("label",null,"Paiement minimum ($)"),min), el("div",null,el("label",null,"Prochaine échéance"),due)),
+      el("div",{class:"btnrow"}, el("button",{onclick:()=>{
+        S.profile.debts=S.profile.debts.map(x=>x.id===d.id?Object.assign({},x,{balance:parseFloat(bal.value)||0,min:parseFloat(min.value)||0,due:due.value||x.due}):x);
+        closeSheet(); render(); saveProfile().then(()=>toast("Solde mis à jour"));
+      }},"Enregistrer"), el("button",{class:"ghost",onclick:closeSheet},"Annuler")));
+  });
+}
+function editEnvelopes(){
+  openSheet(sheet=>{
+    const inputs={};
+    sheet.append(el("h2",{style:"margin:0 0 6px;font-size:16px"},"Montants par semaine"));
+    for(const e of S.profile.envelopes){ const i=el("input",{type:"number",inputmode:"decimal",step:"1",min:"0",value:e.weekly}); inputs[e.id]=i; sheet.append(el("label",null,e.name),i); }
+    const dw=el("input",{type:"number",inputmode:"decimal",step:"1",min:"0",value:S.profile.debtWeekly});
+    sheet.append(el("label",null,"Paiement sur la dette chaque semaine"),dw);
+    sheet.append(el("div",{class:"btnrow"}, el("button",{onclick:()=>{
+      S.profile.envelopes=S.profile.envelopes.map(e=>Object.assign({},e,{weekly:parseFloat(inputs[e.id].value)||0}));
+      S.profile.debtWeekly=parseFloat(dw.value)||0;
+      closeSheet(); render(); saveProfile().then(()=>toast("Enregistré"));
+    }},"Enregistrer"), el("button",{class:"ghost",onclick:closeSheet},"Annuler")));
+  });
+}
+function openSheet(build){ const s=$("sheet"); s.innerHTML=""; build(s); $("modal").classList.add("on"); }
+function closeSheet(){ $("modal").classList.remove("on"); }
+$("modal").addEventListener("click",e=>{ if(e.target===$("modal")) closeSheet(); });
+
+// ---------- Actions ----------
+$("exAdd").addEventListener("click",async()=>{
+  const v=parseFloat($("exAmt").value); if(!(v>0)){ $("exAmt").focus(); return; }
+  const sel=$("exEnv").value; const isPlan=sel.startsWith("plan:");
+  const e={id:uidGen(),date:ymd(new Date()),ts:new Date().toISOString(),amount:v,note:$("exNote").value.trim()};
+  if(isPlan){ e.plan=sel.slice(5); e.env="sorties"; } else e.env=sel;
+  $("exAdd").disabled=true;
+  try{ await store.addExpense(e); $("exAmt").value=""; $("exNote").value=""; toast("Dépense ajoutée"); }
+  catch(err){ toast(err&&err.code==="quota_exceeded"?"Stockage plein":"Pas pu enregistrer"); }
+  $("exAdd").disabled=false;
+});
+$("ckAmt").addEventListener("input",renderCheck); $("ckEnv").addEventListener("change",renderCheck);
+$("plDate").value=ymd(addDays(new Date(),7));
+$("plAdd").addEventListener("click",async()=>{
+  const name=$("plName").value.trim(), date=$("plDate").value, cost=parseFloat($("plCost").value);
+  if(!name||!date||!(cost>0)){ toast("Indique quoi, quand et le budget"); return; }
+  try{ await store.savePlan({id:uidGen(),name,date,cost,saved:0,created:ymd(new Date())}); $("plName").value=""; $("plCost").value=""; toast("Sortie planifiée"); }
+  catch(e){ toast("Pas pu enregistrer"); }
+});
+$("outReset").addEventListener("click",()=>{ try{ localStorage.removeItem("coachOut"); }catch(e){} renderOutChecklist(); });
+
+// Tabs
+document.querySelectorAll("nav.tabs button").forEach(b=>b.addEventListener("click",()=>showTab(b.dataset.t)));
+function showTab(t){
+  document.querySelectorAll("nav.tabs button").forEach(x=>x.classList.toggle("on",x.dataset.t===t));
+  document.querySelectorAll("section").forEach(s=>s.classList.toggle("on",s.id==="t-"+t));
+  if(location.hash!=="#"+t) history.replaceState(null,"","#"+t);
+  window.scrollTo(0,0);
+}
+const startTab=(location.hash||"").slice(1); if(["semaine","sortie","dettes","coach"].includes(startTab)) showTab(startTab);
+
+// ---------- Plus ----------
+function renderChips(){ $("welcome").style.display = S.profile.configured ? "none" : ""; }
+async function copyText(t, ok){
+  try{ await navigator.clipboard.writeText(t); toast(ok); }
+  catch(e){ const ta=$("restoreBox"); ta.value=t; ta.focus(); ta.select(); toast("Sélectionne et copie le texte"); }
+}
+function context(){
+  const w=thisWeek(); const st=envStats();
+  return {
+    date: ymd(new Date()),
+    semaine: ymd(w.start)+" au "+ymd(w.end),
+    enveloppes: st.map(e=>e.name+" : "+money(e.spent)+" dépensés sur "+money(e.weekly)+" (reste "+money(e.left)+")"),
+    depenses_semaine: weekExpenses().map(e=>e.date+" "+money(e.amount)+" "+((S.profile.envelopes.find(x=>x.id===e.env)||{}).name||"")+(e.note?" ("+e.note+")":"")),
+    sorties_prevues: upcomingPlans().map(p=>p.name+" le "+p.date+" : budget "+money(p.cost)+", mis de côté "+money(p.saved||0)),
+    dettes: (S.profile.debts||[]).map(d=>d.name+" : "+money(d.balance)+" à "+d.rate+" %, min. "+money(d.min)),
+    paiements_a_venir: (S.profile.schedule||[]).filter(s=>!s.done).map(s=>s.date+" "+s.label+(s.amount!=null?" "+money(s.amount):""))
+  };
+}
+$("copySummary").addEventListener("click",()=>{
+  const c=context();
+  const t="Mon résumé budget ("+c.date+", semaine du "+c.semaine+")\n\nEnveloppes :\n- "+c.enveloppes.join("\n- ")+
+    "\n\nDépenses de la semaine :\n"+(c.depenses_semaine.length?"- "+c.depenses_semaine.join("\n- "):"(aucune)")+
+    "\n\nSorties prévues :\n"+(c.sorties_prevues.length?"- "+c.sorties_prevues.join("\n- "):"(aucune)")+
+    "\n\nDettes :\n- "+c.dettes.join("\n- ")+
+    "\n\nPaiements à venir :\n"+(c.paiements_a_venir.length?"- "+c.paiements_a_venir.join("\n- "):"(aucun)")+
+    "\n\nMa question : ";
+  copyText(t,"Résumé copié. Colle-le dans Claude");
+});
+$("importBtn").addEventListener("click",async()=>{
+  let cfg; try{ cfg=JSON.parse($("importBox").value.trim()); }catch(e){ toast("Code invalide"); return; }
+  if(!cfg||!Array.isArray(cfg.envelopes)){ toast("Code invalide"); return; }
+  S.profile=Object.assign(structuredClone(DEFAULT_PROFILE), cfg, {configured:true, checklist:S.profile.checklist||{}});
+  await saveProfile(); $("importBox").value=""; render(); toast("Configuration importée ✓"); showTab("semaine");
+});
+$("exportBtn").addEventListener("click",()=>{ copyText(JSON.stringify({profile:S.profile,expenses:S.expenses,plans:S.plans}),"Sauvegarde copiée"); });
+$("restoreBtn").addEventListener("click",()=>{
+  let d; try{ d=JSON.parse($("restoreBox").value.trim()); }catch(e){ toast("Sauvegarde invalide"); return; }
+  if(!d||!d.profile){ toast("Sauvegarde invalide"); return; }
+  try{ localStorage.setItem("coachBudget.v1",JSON.stringify({profile:d.profile,expenses:d.expenses||[],plans:d.plans||[]})); }catch(e){ toast("Pas pu restaurer"); return; }
+  store=localAdapter(); store.start(); $("restoreBox").value=""; toast("Sauvegarde restaurée ✓");
+});
+
+// ---------- Boot ----------
+store=localAdapter(); store.start();
+try{ if(navigator.storage&&navigator.storage.persist) navigator.storage.persist(); }catch(e){}
+$("status").textContent="Enregistré sur ce téléphone";
+})();
+</script>
+</body>
+</html>

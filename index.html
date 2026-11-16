@@ -91,6 +91,21 @@ section{display:none} section.on{display:block}
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:flex-end;justify-content:center;z-index:8}
 .modal.on{display:flex}
 .modal .sheet{background:var(--card);width:100%;max-width:640px;border-radius:16px 16px 0 0;padding:16px 14px calc(16px + env(safe-area-inset-bottom))}
+.lock{position:fixed;inset:0;background:var(--bg);z-index:20;display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px}
+.lock.on{display:flex}
+.lock input{max-width:220px;text-align:center;font-size:24px;letter-spacing:.4em}
+table.imp{width:100%;border-collapse:collapse;font-size:13px}
+table.imp td{padding:6px 4px;border-top:1px solid var(--line);vertical-align:top}
+table.imp select{padding:5px 6px;font-size:13px}
+.kv{display:flex;justify-content:space-between;gap:8px;padding:5px 0;font-size:14px}
+.kv b{font-variant-numeric:tabular-nums}
+.sim{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.sim>div{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px;font-size:13px}
+.sim>div.best{border-color:var(--green)}
+.sim .t{font-weight:600;margin-bottom:4px}
+.sim .n{font-size:17px;font-weight:700;font-variant-numeric:tabular-nums}
+.ins{padding:8px 0;border-top:1px solid var(--line);font-size:14px}.ins:first-child{border-top:0}
+nav.tabs button{font-size:11px}
 </style>
 </head>
 <body>
@@ -109,6 +124,19 @@ section{display:none} section.on{display:block}
     </div>
     <div class="card" id="bannerCard" style="display:none;border-color:var(--orange);background:var(--orange-soft)">
       <div id="bannerText" style="color:var(--orange);font-weight:600;white-space:pre-wrap"></div>
+    </div>
+    <div class="card" id="backupNag" style="display:none">
+      <div class="small"><b>Sauvegarde :</b> <span id="backupNagText"></span></div>
+      <div class="btnrow"><button class="small" id="nagBackupBtn">Télécharger une sauvegarde</button></div>
+    </div>
+    <div class="card" id="forecastCard">
+      <h2>Prévision jusqu'à la fin du mois prochain</h2>
+      <div class="grid2">
+        <div><label for="balAmt">Mon solde en banque aujourd'hui ($)</label><input id="balAmt" type="number" inputmode="decimal" step="0.01" placeholder="Chèques + épargne"></div>
+        <div style="align-self:end"><button class="ghost" id="balSave" style="width:100%">Mettre à jour</button></div>
+      </div>
+      <div class="small muted" id="balInfo" style="margin-top:6px"></div>
+      <div id="forecastOut" style="margin-top:8px"></div>
     </div>
     <div class="card" id="schedCard" style="display:none">
       <h2>Paiements à venir</h2>
@@ -206,8 +234,44 @@ section{display:none} section.on{display:block}
       <div id="debtList"></div>
     </div>
     <div class="card">
+      <h2>Simulateur de remboursement</h2>
+      <div class="small muted">Compare les façons de rembourser tes cartes (le paiement fixe du Mac reste à part).</div>
+      <div class="grid2">
+        <div><label for="simPay">Montant par mois pour les cartes ($)</label><input id="simPay" type="number" inputmode="decimal" step="10" min="0"></div>
+        <div><label for="simExtra">Montant unique en plus ($)</label><input id="simExtra" type="number" inputmode="decimal" step="10" min="0" placeholder="Ex. contrat DJ, impôts"></div>
+        <div><label for="simRate">Taux d'un prêt de consolidation (%)</label><input id="simRate" type="number" inputmode="decimal" step="0.1" min="0" value="10"></div>
+        <div><label for="simTerm">Durée du prêt (mois)</label><input id="simTerm" type="number" inputmode="numeric" step="12" min="12" value="60"></div>
+      </div>
+      <div id="simOut"></div>
+    </div>
+    <div class="card">
       <h2>Ma stratégie</h2>
       <ol class="small" id="strategyList" style="margin:0;padding-left:20px"></ol>
+    </div>
+  </section>
+
+  <!-- EPARGNE -->
+  <section id="t-epargne">
+    <div class="card">
+      <div class="hero">
+        <div><div class="lbl">Épargne totale</div><div class="big" id="savTotal">—</div></div>
+        <div style="text-align:right"><div class="lbl">Objectifs</div><div id="savCount" style="font-weight:600"></div></div>
+      </div>
+      <div class="small muted" id="savNote" style="margin-top:6px"></div>
+    </div>
+    <div class="card">
+      <h2>Mes objectifs</h2>
+      <div id="savList"></div>
+    </div>
+    <div class="card">
+      <h2>Nouvel objectif</h2>
+      <label for="sgName">Nom</label><input id="sgName" type="text" placeholder="Ex. Fonds d'urgence, matériel DJ, voyage…">
+      <div class="grid2">
+        <div><label for="sgTarget">Montant visé ($)</label><input id="sgTarget" type="number" inputmode="decimal" step="50" min="0"></div>
+        <div><label for="sgDate">Pour quand (facultatif)</label><input id="sgDate" type="date"></div>
+      </div>
+      <div class="btnrow"><button id="sgAdd">Créer l'objectif</button></div>
+      <div class="small muted" style="margin-top:8px">Conseil : commence par un fonds d'urgence de 500 $, puis 1 000 $. C'est ce qui évite de sortir la carte de crédit au prochain imprévu.</div>
     </div>
   </section>
 
@@ -219,6 +283,26 @@ section{display:none} section.on{display:block}
       <div class="btnrow"><button id="copySummary">Copier mon résumé</button><a href="https://claude.ai/new" style="align-self:center;color:var(--green);font-weight:600">Ouvrir Claude ↗</a></div>
     </div>
     <div class="card">
+      <h2>Analyse automatique</h2>
+      <div class="small muted">Basée sur tes 4 dernières semaines de dépenses enregistrées.</div>
+      <div id="insights" style="margin-top:6px"></div>
+    </div>
+    <div class="card">
+      <h2>Importer un relevé (CSV)</h2>
+      <div class="small muted">Dans BNC en ligne : ton compte → Transactions → Exporter (format CSV). Les dépenses sont classées automatiquement ; tu peux corriger avant d'importer. Les paiements de carte, virements entre tes comptes et ta paie sont ignorés.</div>
+      <div class="btnrow"><input id="csvFile" type="file" accept=".csv,text/csv,.txt"></div>
+      <div id="csvOut"></div>
+    </div>
+    <div class="card">
+      <h2>Code d'accès</h2>
+      <div class="small muted" id="pinInfo"></div>
+      <div class="grid2">
+        <div><label for="pinNew">Nouveau code (4 à 6 chiffres)</label><input id="pinNew" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6"></div>
+        <div style="align-self:end"><button class="ghost" id="pinSet" style="width:100%">Enregistrer le code</button></div>
+      </div>
+      <div class="btnrow"><button class="danger small" id="pinOff">Retirer le code</button></div>
+    </div>
+    <div class="card">
       <h2>Configuration</h2>
       <div class="small muted">Colle ici le code de configuration que Claude t'a donné (tes dettes, tes enveloppes et ton plan). Ça remplace la configuration actuelle, sans toucher à tes dépenses.</div>
       <label for="importBox">Code de configuration</label>
@@ -228,7 +312,9 @@ section{display:none} section.on{display:block}
     <div class="card">
       <h2>Sauvegarde</h2>
       <div class="small muted">Tes données restent seulement sur ce téléphone. Copie une sauvegarde de temps en temps (dans Notes ou en message à Claude) pour ne rien perdre.</div>
-      <div class="btnrow"><button class="ghost" id="exportBtn">Copier ma sauvegarde complète</button></div>
+      <div class="btnrow"><button id="dlBackup">Télécharger une sauvegarde</button><button class="ghost" id="exportBtn">Copier la sauvegarde</button></div>
+      <label for="restoreFile">Restaurer à partir d'un fichier</label>
+      <input id="restoreFile" type="file" accept=".json,application/json">
       <label for="restoreBox">Restaurer une sauvegarde</label>
       <textarea id="restoreBox" rows="3" placeholder="Colle une sauvegarde complète ici"></textarea>
       <div class="btnrow"><button class="ghost" id="restoreBtn">Restaurer</button></div>
@@ -241,9 +327,16 @@ section{display:none} section.on{display:block}
   <button data-t="semaine" class="on"><span class="ic">📅</span>Semaine</button>
   <button data-t="sortie"><span class="ic">🎉</span>Sortie</button>
   <button data-t="dettes"><span class="ic">💳</span>Dettes</button>
+  <button data-t="epargne"><span class="ic">🐷</span>Épargne</button>
   <button data-t="coach"><span class="ic">⚙️</span>Plus</button>
 </nav>
 
+<div class="lock" id="lock">
+  <div style="font-size:40px">🔒</div>
+  <div style="font-weight:600">Mon coach budget</div>
+  <input id="pinIn" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off" placeholder="Code">
+  <div class="small muted" id="pinMsg"></div>
+</div>
 <div class="modal" id="modal"><div class="sheet" id="sheet"></div></div>
 <div class="toast" id="toast"></div>
 
@@ -521,7 +614,7 @@ function renderDebts(){
   order.forEach((d,i)=>{
     const role = d.plan ? "Paiement fixe seulement" : i===0 ? "Priorité : tout le surplus ici" : "Paiement minimum";
     L.append(el("div",{class:"debt"},
-      el("div",{class:"top"}, el("div",null, el("div",{style:"font-weight:600"},d.name), el("div",{class:"small muted"},(+d.rate||0)+" % · min. "+money(d.min)+(d.due?" · échéance "+fmtDay(parseYmd(d.due)):""))),
+      el("div",{class:"top"}, el("div",null, el("div",{style:"font-weight:600"},d.name), el("div",{class:"small muted"},String(+d.rate||0).replace(".",",")+" % · min. "+money(d.min)+(d.due?" · échéance "+fmtDay(parseYmd(d.due)):""))),
         el("div",{style:"text-align:right"}, el("div",{class:"amt"},money(d.balance)), el("span",{class:"pill "+(d.plan?"b":i===0?"r":"o")},role))),
       el("div",{class:"btnrow"}, el("button",{class:"ghost small",onclick:()=>editDebt(d)},"Mettre à jour"))
     ));
@@ -588,10 +681,10 @@ function showTab(t){
   if(location.hash!=="#"+t) history.replaceState(null,"","#"+t);
   window.scrollTo(0,0);
 }
-const startTab=(location.hash||"").slice(1); if(["semaine","sortie","dettes","coach"].includes(startTab)) showTab(startTab);
+const startTab=(location.hash||"").slice(1); if(["semaine","sortie","dettes","epargne","coach"].includes(startTab)) showTab(startTab);
 
 // ---------- Plus ----------
-function renderChips(){ $("welcome").style.display = S.profile.configured ? "none" : ""; }
+function renderChips(){ $("welcome").style.display = S.profile.configured ? "none" : ""; try{ renderV2(); }catch(e){ console.error(e); } }
 async function copyText(t, ok){
   try{ await navigator.clipboard.writeText(t); toast(ok); }
   catch(e){ const ta=$("restoreBox"); ta.value=t; ta.focus(); ta.select(); toast("Sélectionne et copie le texte"); }
@@ -615,6 +708,8 @@ $("copySummary").addEventListener("click",()=>{
     "\n\nSorties prévues :\n"+(c.sorties_prevues.length?"- "+c.sorties_prevues.join("\n- "):"(aucune)")+
     "\n\nDettes :\n- "+c.dettes.join("\n- ")+
     "\n\nPaiements à venir :\n"+(c.paiements_a_venir.length?"- "+c.paiements_a_venir.join("\n- "):"(aucun)")+
+    "\n\nAnalyse automatique :\n- "+insightsList().join("\n- ")+
+    (function(){ const f=runForecast(); return f?"\n\nPrévision : solde le plus bas "+money(f.min)+" le "+f.minDate+(f.firstNeg?" (négatif dès le "+f.firstNeg+")":""):""; })()+
     "\n\nMa question : ";
   copyText(t,"Résumé copié. Colle-le dans Claude");
 });
@@ -632,10 +727,317 @@ $("restoreBtn").addEventListener("click",()=>{
   store=localAdapter(); store.start(); $("restoreBox").value=""; toast("Sauvegarde restaurée ✓");
 });
 
+// ---------- V2 : prévisions, simulateur, épargne, import, analyse, sécurité ----------
+function renderV2(){ renderBackupNag(); renderForecast(); renderSim(); renderSavings(); renderInsights(); renderPinInfo(); }
+const todayDate = () => new Date(new Date().toDateString());
+function monthEnd(d, plus){ return new Date(d.getFullYear(), d.getMonth()+1+plus, 0); }
+
+// ----- Prévision de solde -----
+function forecastEvents(){
+  const P=S.profile, t0=todayDate(), end=monthEnd(t0,1), today=ymd(t0);
+  const ev=[];
+  // reste des enveloppes de la semaine en cours
+  const leftNow=envStats().reduce((s,e)=>s+Math.max(0,e.left),0);
+  if(leftNow>0) ev.push({date:today,label:"Reste des enveloppes de la semaine",amount:-leftNow});
+  // paies et enveloppes des semaines suivantes
+  const weekly=P.envelopes.reduce((s,e)=>s+(+e.weekly||0),0);
+  let pay=addDays(weekStart(t0),7);
+  while(pay<=end){
+    const d=ymd(pay);
+    if(+P.incomeWeekly>0) ev.push({date:d,label:"Paie",amount:+P.incomeWeekly});
+    if(weekly>0) ev.push({date:d,label:"Enveloppes de la semaine",amount:-weekly});
+    if(+P.debtWeekly>0) ev.push({date:d,label:"Paiement dette (hebdo)",amount:-P.debtWeekly});
+    pay=addDays(pay,7);
+  }
+  // paiements prévus (non cochés, sauf réserves)
+  const recUsed={};
+  for(const s of (P.schedule||[])){
+    if(s.done||s.reserve||s.amount==null) continue;
+    const d=s.date<today?today:s.date;
+    if(parseYmd(d)>end) continue;
+    ev.push({date:d,label:s.label+(s.date<today?" (en retard)":""),amount:-Math.abs(+s.amount)});
+    if(s.rec) recUsed[s.rec+"|"+d.slice(0,7)]=true;
+  }
+  // frais récurrents mensuels
+  for(const r of (P.recurring||[])){
+    for(let m=0;m<=1;m++){
+      const base=new Date(t0.getFullYear(),t0.getMonth()+m,1);
+      const day=Math.min(+r.day||1, monthEnd(base,0).getDate());
+      const d=ymd(new Date(base.getFullYear(),base.getMonth(),day));
+      if(d<today||parseYmd(d)>end||(r.from&&d<r.from)) continue;
+      if(recUsed[r.id+"|"+d.slice(0,7)]) continue;
+      ev.push({date:d,label:r.label,amount:-Math.abs(+r.amount)});
+    }
+  }
+  ev.sort((a,b)=>a.date.localeCompare(b.date)||(b.amount-a.amount));
+  return {ev,end};
+}
+function runForecast(){
+  const b=S.profile.bank; if(!b||b.amount==null) return null;
+  const {ev,end}=forecastEvents(); let bal=+b.amount, min=bal, minDate=ymd(todayDate()), firstNeg=null;
+  const rows=ev.map(e=>{ bal+=e.amount; if(bal<min){min=bal;minDate=e.date;} if(bal<0&&!firstNeg) firstNeg=e.date; return Object.assign({},e,{bal}); });
+  return {rows,min,minDate,firstNeg,endBal:bal,end};
+}
+function renderForecast(){
+  const b=S.profile.bank;
+  if(document.activeElement!==$("balAmt")) $("balAmt").value = b&&b.amount!=null ? b.amount : "";
+  $("balInfo").textContent = b&&b.date ? "Solde entré le "+fmtDay(parseYmd(b.date))+(b.date<ymd(todayDate())?" : mets-le à jour pour une prévision juste.":".") : "Entre ton solde pour voir si tu risques de manquer d'argent.";
+  const out=$("forecastOut"); out.innerHTML="";
+  const f=runForecast(); if(!f) return;
+  const cls=f.firstNeg?"r":f.min<100?"o":"g";
+  const msg=f.firstNeg ? "Attention : ton compte passerait dans le négatif le "+fmtDay(parseYmd(f.firstNeg))+" (plus bas : "+money(f.min)+" le "+fmtDay(parseYmd(f.minDate))+"). Repousse une dépense, coupe dans les enveloppes ou prévois une entente avant cette date."
+    : f.min<100 ? "Ça passe, mais c'est serré : ton solde le plus bas serait de "+money(f.min)+" le "+fmtDay(parseYmd(f.minDate))+"."
+    : "Ça passe : ton solde le plus bas serait de "+money(f.min)+" le "+fmtDay(parseYmd(f.minDate))+".";
+  out.append(el("div",{class:"verdict "+cls},msg));
+  const list=el("div",{class:"list",style:"margin-top:8px"});
+  f.rows.slice(0,14).forEach(r=>list.append(el("div",{class:"item"},
+    el("div",null, el("div",{class:"small"},r.label), el("div",{class:"meta"},fmtDay(parseYmd(r.date)))),
+    el("div",{style:"text-align:right"}, el("div",{class:"amt",style:r.amount>0?"color:var(--green)":""},(r.amount>0?"+":"")+money(r.amount)), el("div",{class:"meta",style:r.bal<0?"color:var(--red)":""},"Solde "+money(r.bal))))));
+  if(f.rows.length>14) list.append(el("div",{class:"empty"},"… et "+(f.rows.length-14)+" autres mouvements. Solde prévu le "+fmtDay(f.end)+" : "+money(f.endBal)));
+  out.append(list);
+}
+$("balSave").addEventListener("click",()=>{
+  const v=parseFloat($("balAmt").value); if(isNaN(v)){ toast("Entre un montant"); return; }
+  S.profile.bank={amount:v,date:ymd(todayDate())}; render(); saveProfile().then(()=>toast("Solde mis à jour"));
+});
+
+// ----- Simulateur -----
+function cardDebts(){ return (S.profile.debts||[]).filter(d=>!d.plan && +d.balance>0); }
+function simulate(strategy, pay, extra){
+  const ds=cardDebts().map(d=>({name:d.name,bal:+d.balance,rate:(+d.rate||0)/100/12,ratio:Math.min(1,(+d.min||0)/Math.max(1,+d.balance))||0.03}));
+  if(!ds.length) return null;
+  let months=0, interest=0, first=true;
+  while(ds.some(d=>d.bal>0.005) && months<600){
+    months++;
+    ds.forEach(d=>{ if(d.bal>0){ const i=d.bal*d.rate; d.bal+=i; interest+=i; } });
+    let budget=pay+(first?(extra||0):0); first=false;
+    const mins=ds.map(d=>d.bal>0?Math.min(d.bal,Math.max(10,d.ratio*d.bal)):0);
+    const need=mins.reduce((s,x)=>s+x,0);
+    if(budget<need-0.01) return {ok:false,need};
+    ds.forEach((d,i)=>{ d.bal-=mins[i]; budget-=mins[i]; });
+    const order=ds.map((d,i)=>i).filter(i=>ds[i].bal>0.005).sort((a,b)=> strategy==="snowball" ? ds[a].bal-ds[b].bal : ds[b].rate-ds[a].rate);
+    for(const i of order){ if(budget<=0) break; const p=Math.min(budget,ds[i].bal); ds[i].bal-=p; budget-=p; }
+  }
+  return {ok:months<600,months,interest};
+}
+function simConsolidation(pay, extra, ratePct, term){
+  const total=cardDebts().reduce((s,d)=>s+(+d.balance),0)-(extra||0); if(total<=0) return null;
+  const r=(+ratePct||0)/100/12, n=+term||60;
+  const P = r>0 ? total*r/(1-Math.pow(1+r,-n)) : total/n;
+  if(pay<P-0.01) return {ok:false,need:P};
+  let bal=total, months=0, interest=0;
+  while(bal>0.005 && months<600){ months++; const i=bal*r; bal+=i; interest+=i; bal-=Math.min(bal,pay); }
+  return {ok:true,months,interest,P};
+}
+function payoffDate(m){ const d=new Date(); d.setMonth(d.getMonth()+m); return d.toLocaleDateString("fr-CA",{month:"long",year:"numeric"}); }
+function renderSim(){
+  const out=$("simOut"); out.innerHTML="";
+  if(!cardDebts().length){ out.append(el("div",{class:"empty"},"Aucune carte à rembourser.")); return; }
+  if(!$("simPay").value && document.activeElement!==$("simPay")){ $("simPay").value = S.profile.simPay || Math.ceil(cardDebts().reduce((s,d)=>s+(+d.min||0),0)*1.1/10)*10; }
+  const pay=parseFloat($("simPay").value)||0, extra=parseFloat($("simExtra").value)||0;
+  const res=[
+    {t:"Avalanche",d:"Le taux le plus élevé d'abord",r:simulate("avalanche",pay,extra)},
+    {t:"Boule de neige",d:"Le plus petit solde d'abord",r:simulate("snowball",pay,extra)},
+    {t:"Consolidation",d:$("simRate").value+" % sur "+$("simTerm").value+" mois",r:simConsolidation(pay,extra,$("simRate").value,$("simTerm").value)}
+  ];
+  const ok=res.filter(x=>x.r&&x.r.ok); const best=ok.length?ok.reduce((a,b)=>a.r.interest<=b.r.interest?a:b):null;
+  const grid=el("div",{class:"sim"});
+  for(const x of res){
+    const r=x.r;
+    grid.append(el("div",{class:x===best?"best":""}, el("div",{class:"t"},x.t+(x===best?" ✓":"")), el("div",{class:"meta small muted"},x.d),
+      !r ? el("div",null,"—") : !r.ok ? el("div",{style:"color:var(--red);margin-top:6px"},"Il faut au moins "+money(r.need)+"/mois") :
+      el("div",{style:"margin-top:6px"}, el("div",{class:"n"},r.months+" mois"), el("div",null,"Intérêts : "+money(r.interest)), el("div",{class:"muted"},"Fini en "+payoffDate(r.months)), r.P?el("div",{class:"muted"},"Paiement min. "+money(r.P)):null)));
+  }
+  out.append(grid);
+  if(best){ const av=res[0].r; out.append(el("div",{class:"small muted",style:"margin-top:8px"}, best.t==="Consolidation"&&av&&av.ok ? "La consolidation t'éviterait environ "+money(av.interest-best.r.interest)+" d'intérêts par rapport à rembourser les cartes toi-même. À confirmer avec ta banque." : "Chaque 100 $ de plus par mois raccourcit le remboursement de plusieurs mois.")); }
+}
+["simPay","simExtra","simRate","simTerm"].forEach(id=>$(id).addEventListener("input",()=>{ renderSim(); }));
+$("simPay").addEventListener("change",()=>{ S.profile.simPay=parseFloat($("simPay").value)||0; saveProfile(); });
+
+// ----- Épargne -----
+function renderSavings(){
+  const g=S.profile.savings||[]; const total=g.reduce((s,x)=>s+(+x.saved||0),0);
+  $("savTotal").textContent=money(total); $("savCount").textContent=g.length+" objectif"+(g.length>1?"s":"");
+  const em=g.find(x=>/urgence/i.test(x.name));
+  $("savNote").textContent = !em ? "Crée d'abord un fonds d'urgence : même 25 $ par paie, ça compte." : (+em.saved||0)<500 ? "Prochaine étape : 500 $ dans ton fonds d'urgence." : "Beau travail : ton coussin te protège des imprévus.";
+  const L=$("savList"); L.innerHTML="";
+  if(!g.length){ L.append(el("div",{class:"empty"},"Aucun objectif pour l'instant.")); return; }
+  for(const x of g){
+    const pct=x.target>0?Math.min(100,(+x.saved||0)/x.target*100):0;
+    let hint=""; if(x.date&&x.target>(+x.saved||0)){ const wk=weeksUntil(x.date); hint=" · "+money((x.target-(+x.saved||0))/wk)+"/sem. pour y arriver le "+fmtDay(parseYmd(x.date)); }
+    L.append(el("div",{class:"debt"},
+      el("div",{class:"top"}, el("div",{style:"font-weight:600"},x.name), el("div",{class:"amt"},money(x.saved||0)+" / "+money(x.target))),
+      el("div",{class:"bar"}, el("i",{style:"width:"+pct+"%"})),
+      el("div",{class:"small muted",style:"margin-top:4px"}, Math.round(pct)+" %"+hint),
+      el("div",{class:"btnrow"}, el("button",{class:"small",onclick:()=>moveSavings(x,1)},"Ajouter"), el("button",{class:"ghost small",onclick:()=>moveSavings(x,-1)},"Retirer"),
+        el("button",{class:"danger small",onclick:()=>{ S.profile.savings=(S.profile.savings||[]).filter(y=>y.id!==x.id); render(); saveProfile(); }},"Supprimer"))));
+  }
+}
+function moveSavings(x, sign){
+  openSheet(sheet=>{
+    const amt=el("input",{type:"number",inputmode:"decimal",step:"1",min:"0"});
+    const sel=el("select"); sel.append(el("option",{value:""},"Hors enveloppes (paie, contrat, remboursement)")); for(const e of S.profile.envelopes) sel.append(el("option",{value:e.id},"Pris dans : "+e.name));
+    sheet.append(el("h2",{style:"margin:0 0 6px;font-size:16px"},(sign>0?"Ajouter à":"Retirer de")+" « "+x.name+" »"), el("label",null,"Montant ($)"), amt);
+    if(sign>0) sheet.append(el("label",null,"D'où vient l'argent"), sel);
+    sheet.append(el("div",{class:"btnrow"}, el("button",{onclick:async()=>{
+      const v=parseFloat(amt.value); if(!(v>0)) return; closeSheet();
+      S.profile.savings=(S.profile.savings||[]).map(y=>y.id===x.id?Object.assign({},y,{saved:Math.max(0,(+y.saved||0)+sign*v)}):y);
+      if(sign>0&&sel.value) await store.addExpense({id:uidGen(),date:ymd(new Date()),ts:new Date().toISOString(),amount:v,env:sel.value,note:"Épargne : "+x.name});
+      render(); saveProfile().then(()=>toast(sign>0?"Épargne ajoutée 💪":"Montant retiré"));
+    }},"Confirmer"), el("button",{class:"ghost",onclick:closeSheet},"Annuler")));
+  });
+}
+$("sgAdd").addEventListener("click",()=>{
+  const name=$("sgName").value.trim(), target=parseFloat($("sgTarget").value);
+  if(!name||!(target>0)){ toast("Indique un nom et un montant"); return; }
+  S.profile.savings=(S.profile.savings||[]).concat([{id:uidGen(),name,target,saved:0,date:$("sgDate").value||null}]);
+  $("sgName").value=""; $("sgTarget").value=""; $("sgDate").value=""; render(); saveProfile().then(()=>toast("Objectif créé"));
+});
+
+// ----- Analyse automatique -----
+function insightsList(){
+  const out=[]; const since=ymd(addDays(todayDate(),-27));
+  const ex=S.expenses.filter(e=>e.date>=since && !e.plan && !/^(Réserve|Épargne) :/.test(e.note||""));
+  if(!ex.length){ out.push("Enregistre ou importe tes dépenses : l'analyse a besoin de quelques semaines de données."); }
+  else{
+    const total=ex.reduce((s,e)=>s+(+e.amount||0),0);
+    const weeks=Math.max(1,Math.min(4,Math.ceil((todayDate()-parseYmd(ex.map(e=>e.date).sort()[0]))/86400000/7)||1));
+    out.push("Dépenses variables "+(weeks>1?"des "+weeks+" dernières semaines":"de la dernière semaine")+" : "+money(total)+", soit "+money(total/weeks)+" par semaine.");
+    const over=S.profile.envelopes.map(env=>{ const sp=ex.filter(e=>e.env===env.id).reduce((s,e)=>s+(+e.amount||0),0); return {name:env.name,sp,bud:env.weekly*weeks}; }).filter(x=>x.sp>x.bud+1).sort((a,b)=>(b.sp-b.bud)-(a.sp-a.bud));
+    over.slice(0,3).forEach(x=>out.push("« "+x.name+" » dépasse le budget de "+money(x.sp-x.bud)+" ("+money(x.sp)+" pour "+money(x.bud)+" prévus). C'est ta meilleure source d'économies."));
+    if(!over.length) out.push("Toutes tes enveloppes sont respectées. Ce qui reste chaque jeudi peut aller sur ta dette prioritaire.");
+    const by={}; ex.forEach(e=>{ const k=(e.note||"").toUpperCase().replace(/[^A-Z&' ]/g," ").trim().split(/\s+/).slice(0,2).join(" "); if(k.length<3) return; (by[k]=by[k]||{n:0,s:0}); by[k].n++; by[k].s+=+e.amount||0; });
+    Object.entries(by).filter(([k,v])=>v.n>=3).sort((a,b)=>b[1].s-a[1].s).slice(0,2).forEach(([k,v])=>out.push(k.charAt(0)+k.slice(1).toLowerCase()+" : "+v.n+" fois pour "+money(v.s)+". En coupant de moitié, tu économiserais environ "+money(v.s/2/weeks*4.33)+" par mois."));
+  }
+  const debts=(S.profile.debts||[]); const intM=debts.reduce((s,d)=>s+(+d.balance||0)*(+d.rate||0)/100/12,0);
+  if(intM>0) { const top=debts.filter(d=>!d.plan&&+d.balance>0).sort((a,b)=>(+b.rate)-(+a.rate))[0]; out.push("Tes intérêts coûtent environ "+money(intM)+" par mois."+(top?" Chaque dollar de plus sur « "+top.name+" » t'épargne "+String(top.rate).replace(".",",")+" % d'intérêts.":"")); }
+  const f=runForecast(); if(f&&f.firstNeg) out.push("⚠️ La prévision montre un manque d'argent le "+fmtDay(parseYmd(f.firstNeg))+". Regarde l'onglet Semaine.");
+  const em=(S.profile.savings||[]).find(x=>/urgence/i.test(x.name)); if(!em) out.push("Tu n'as pas encore de fonds d'urgence. Un petit coussin de 500 $ évite de retourner sur la carte au prochain imprévu.");
+  return out;
+}
+function renderInsights(){ const L=$("insights"); L.innerHTML=""; insightsList().forEach(t=>L.append(el("div",{class:"ins"},t))); }
+
+// ----- Import CSV -----
+const CAT_RULES=[
+  ["ignore",/PAIEMENT RECU|PAYMENT|MOBILE VIREMENT MC|INT\.? VIREMENT|VIR\.? ?DEBIT|VIR\.? ?CR|MOBILE VIR|INTERNET VIR|SALAIRE|PAYROLL|AE CANADA|GOUV|TPS|GST|IMPOT|PAIEMENT INTERETS|RENV VIRDT|REV VIR|FRAIS INTERET|^DEPOT|G\/DEPOT|DEPOT MOBILE/],
+  ["fixe",/VIDEOTRON|BELL|ROGERS|FIZZ|KOODO|TELUS|FIDO|HYDRO|ASSURANCE|MANULIFE|NETFLIX|SPOTIFY|APPLE\.COM|OPENAI|ANTHROPIC|GITHUB|PRIME MEMBER|DISNEY|ANYTIME|PAIEM\/FAC|FAIRSTONE|LOYER/],
+  ["saq",/SAQ|SQDC/],
+  ["essence",/ESSO|PETRO|SHELL|ULTRAMAR|IRVING|COUCHE-TARD|COUCHE -TA|CIRCLE K/],
+  ["epicerie",/IGA|MAXI|COSTCO|SUPER C|METRO|MARCHE|BOUCHERIE|EPICERIE|WALMART|WAL-MART|PROVIGO|ADONIS|KOHINOOR|SAVEURS|DOLLARAMA|AVRIL|GIANT TIGER/],
+  ["restos",/UBER ?EATS|UBEREATS|DOORDASH|SKIP|RESTAURANT|RESTO|PIZZA|DOMINO|TIM HORTON|MCDONALD|CAFE|SUSHI|BURGER|A&W|BRASSERIE|BISTRO|STARBUCKS|SUBWAY|KFC|BAR /],
+  ["transport",/UBERTRIP|UBER TRIP|UBER CANADA\/UBERTRIP|LYFT|STM|BIXI|EXO|MOBILITE|CHRONO|TAXI|PENDING\.UBER|RTL/],
+  ["magasinage",/AMAZON|AMZN|TEMU|ZARA|SIMONS|SSENSE|ADIDAS|NIKE|WINNERS|SEPHORA|BEST BUY|CANADIAN TIRE|H&M|UNIQLO|RAY-BAN|OAKLEY|SHEIN/],
+  ["sorties",/CLUB|BILLETTERIE|TICKETMASTER|EVENTBRITE|CINEPLEX|SERATO|LONG & MCQUADE|SHOTGUN/],
+  ["interac",/VIREMENT INTERAC|INTERAC E-TRANSFER|E-TRANSFER/]
+];
+function guessCat(desc){ const d=(desc||"").toUpperCase(); for(const [c,re] of CAT_RULES){ if(re.test(d)) return c; } return "divers"; }
+function envFor(cat){ const ids=S.profile.envelopes.map(e=>e.id); if(["ignore","fixe","interac"].includes(cat)) return "__ignore"; return ids.includes(cat)?cat:(ids.includes("divers")?"divers":ids[0]); }
+function parseCSV(text){
+  const first=text.split(/\r?\n/).find(l=>l.trim())||""; const delim=(first.split(";").length>first.split(",").length)?";":(first.split("\t").length>first.split(",").length?"\t":",");
+  const rows=[]; let row=[], cur="", q=false;
+  for(let i=0;i<text.length;i++){ const c=text[i];
+    if(q){ if(c==='"'){ if(text[i+1]==='"'){cur+='"';i++;} else q=false; } else cur+=c; }
+    else if(c==='"') q=true; else if(c===delim){ row.push(cur); cur=""; } else if(c==="\n"||c==="\r"){ if(c==="\r"&&text[i+1]==="\n") i++; row.push(cur); rows.push(row); row=[]; cur=""; } else cur+=c; }
+  if(cur||row.length){ row.push(cur); rows.push(row); }
+  return rows.filter(r=>r.some(x=>x.trim()));
+}
+function num(s){ if(s==null) return NaN; let t=String(s).replace(/[\s $]/g,""); if(!t) return NaN; let neg=false; if(/^\(.*\)$/.test(t)){neg=true;t=t.slice(1,-1);} if(t.endsWith("-")){neg=true;t=t.slice(0,-1);} if(t.includes(",")&&t.includes(".")) t=t.replace(/,/g,""); else if(t.includes(",")) t=t.replace(",","."); const v=parseFloat(t); return neg?-v:v; }
+function pdate(s){ s=(s||"").trim(); let m;
+  if((m=s.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/))) return m[1]+"-"+pad(+m[2])+"-"+pad(+m[3]);
+  if((m=s.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})/))) return m[3]+"-"+pad(+m[2])+"-"+pad(+m[1]);
+  const d=new Date(s); return isNaN(d)?null:ymd(d); }
+let importRows=[];
+$("csvFile").addEventListener("change",async e=>{
+  const f=e.target.files[0]; if(!f) return; const text=await f.text(); e.target.value="";
+  const out=$("csvOut"); out.innerHTML="";
+  const rows=parseCSV(text); let h=rows.findIndex(r=>r.some(c=>/date/i.test(c)));
+  if(h<0){ out.append(el("div",{class:"verdict r"},"Je ne reconnais pas ce fichier. Vérifie que c'est bien un export CSV de tes transactions.")); return; }
+  const H=rows[h].map(c=>c.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,""));
+  const ix=re=>H.findIndex(c=>re.test(c));
+  const iD=ix(/date/), iDesc=ix(/desc|libel|transaction|detail|marchand|merchant/), iDeb=ix(/debit|retrait|withdraw/), iCred=ix(/credit|depot|deposit/), iAmt=ix(/montant|amount/);
+  const data=rows.slice(h+1).map(r=>{
+    const date=pdate(r[iD]); const desc=(iDesc>=0?r[iDesc]:r.filter((c,i)=>i!==iD).join(" ")).trim();
+    let out=0;
+    if(iDeb>=0){ const d=num(r[iDeb]); const c=iCred>=0?num(r[iCred]):NaN; out = !isNaN(d)&&d!==0 ? Math.abs(d) : (!isNaN(c)&&c!==0 ? -Math.abs(c) : 0); }
+    else if(iAmt>=0){ const a=num(r[iAmt]); out = isNaN(a)?0:-a; }
+    return {date,desc,out};
+  }).filter(r=>r.date&&r.desc&&r.out!==0);
+  if(!data.length){ out.append(el("div",{class:"verdict r"},"Aucune transaction trouvée dans ce fichier.")); return; }
+  // Si toutes les sorties sont négatives (relevé de carte où les achats sont positifs), on inverse
+  const pos=data.filter(r=>r.out>0).length; let flip = pos < data.length/2 && iDeb<0;
+  const existing=new Set(S.expenses.map(e=>e.src).filter(Boolean));
+  importRows=data.map(r=>{ const amount=flip?-r.out:r.out; const src=r.date+"|"+amount.toFixed(2)+"|"+r.desc.toUpperCase().slice(0,30); const cat=guessCat(r.desc); return {date:r.date,desc:r.desc,amount,src,dup:existing.has(src),env: amount>0 ? envFor(cat) : "__ignore",cat}; });
+  showImport();
+});
+function showImport(){
+  const out=$("csvOut"); out.innerHTML="";
+  const tbl=el("table",{class:"imp"});
+  const opts=[["__ignore","Ignorer"]].concat(S.profile.envelopes.map(e=>[e.id,e.name]));
+  importRows.forEach((r,i)=>{
+    const sel=el("select"); opts.forEach(([v,t])=>sel.append(el("option",{value:v},t))); sel.value=r.dup?"__ignore":r.env;
+    sel.addEventListener("change",()=>{ importRows[i].env=sel.value; summary(); });
+    if(r.dup) importRows[i].env="__ignore";
+    tbl.append(el("tr",null, el("td",null, el("div",null,r.desc.slice(0,40)), el("div",{class:"meta"},r.date+(r.dup?" · déjà importée":"")+(r.cat==="fixe"?" · frais fixe":r.cat==="interac"?" · virement Interac":""))),
+      el("td",{class:"amt",style:"text-align:right"+(r.amount<0?";color:var(--green)":"")},money(Math.abs(r.amount))+(r.amount<0?" (entrée)":"")), el("td",null,sel)));
+  });
+  const sum=el("div",{class:"small muted",style:"margin:8px 0"});
+  const btn=el("button",{onclick:doImport},"Importer");
+  function summary(){ const n=importRows.filter(r=>r.env!=="__ignore"&&r.amount>0); sum.textContent=n.length+" dépense(s) à importer pour "+money(n.reduce((s,r)=>s+r.amount,0))+". Les frais fixes, virements Interac et entrées d'argent sont ignorés par défaut."; btn.disabled=!n.length; }
+  out.append(sum, el("div",{style:"max-height:50vh;overflow:auto"},tbl), el("div",{class:"btnrow"}, btn, el("button",{class:"ghost",onclick:()=>{ importRows=[]; $("csvOut").innerHTML=""; }},"Annuler")));
+  summary();
+}
+async function doImport(){
+  const n=importRows.filter(r=>r.env!=="__ignore"&&r.amount>0);
+  for(const r of n){ await store.addExpense({id:uidGen(),date:r.date,ts:new Date().toISOString(),amount:Math.round(r.amount*100)/100,env:r.env,note:r.desc.slice(0,60),src:r.src}); }
+  importRows=[]; $("csvOut").innerHTML=""; toast(n.length+" dépenses importées ✓"); render();
+}
+
+// ----- Sauvegardes -----
+function backupData(){ return JSON.stringify({version:2,date:new Date().toISOString(),profile:S.profile,expenses:S.expenses,plans:S.plans}); }
+function downloadBackup(){
+  try{
+    const blob=new Blob([backupData()],{type:"application/json"}); const a=document.createElement("a");
+    a.href=URL.createObjectURL(blob); a.download="budget-sauvegarde-"+ymd(new Date())+".json"; document.body.append(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+    S.profile.lastBackup=ymd(new Date()); saveProfile(); render(); toast("Sauvegarde téléchargée. Garde-la dans Fichiers ou iCloud.");
+  }catch(e){ toast("Téléchargement impossible : utilise « Copier la sauvegarde »"); }
+}
+function renderBackupNag(){
+  const lb=S.profile.lastBackup; const days=lb?Math.round((todayDate()-parseYmd(lb))/86400000):null;
+  const show=S.profile.configured && S.expenses.length>0 && (days===null||days>=7);
+  $("backupNag").style.display=show?"":"none";
+  if(show) $("backupNagText").textContent = days===null ? "tu n'as jamais fait de sauvegarde. Tes données sont seulement sur ce téléphone." : "ta dernière sauvegarde date de "+days+" jours.";
+}
+$("dlBackup").addEventListener("click",downloadBackup); $("nagBackupBtn").addEventListener("click",downloadBackup);
+$("restoreFile").addEventListener("change",async e=>{
+  const f=e.target.files[0]; if(!f) return; e.target.value="";
+  let d; try{ d=JSON.parse(await f.text()); }catch(err){ toast("Fichier invalide"); return; }
+  if(!d||!d.profile){ toast("Fichier invalide"); return; }
+  try{ localStorage.setItem("coachBudget.v1",JSON.stringify({profile:d.profile,expenses:d.expenses||[],plans:d.plans||[]})); }catch(err){ toast("Pas pu restaurer"); return; }
+  store=localAdapter(); store.start(); toast("Sauvegarde restaurée ✓");
+});
+
+// ----- Code d'accès -----
+async function hashPin(pin, salt){ const buf=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(salt+":"+pin)); return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,"0")).join(""); }
+function renderPinInfo(){ $("pinInfo").textContent = S.profile.pin ? "Un code est demandé à l'ouverture de l'appli et après 1 minute en arrière-plan." : "Aucun code. Ajoute-en un pour que personne qui prend ton téléphone ne voie tes finances."; $("pinOff").style.display=S.profile.pin?"":"none"; }
+$("pinSet").addEventListener("click",async()=>{
+  const v=$("pinNew").value.trim(); if(!/^\d{4,6}$/.test(v)){ toast("4 à 6 chiffres"); return; }
+  const salt=uidGen(); S.profile.pin={salt,hash:await hashPin(v,salt),len:v.length}; $("pinNew").value=""; render(); saveProfile().then(()=>toast("Code enregistré 🔒"));
+});
+$("pinOff").addEventListener("click",()=>{ S.profile.pin=null; render(); saveProfile().then(()=>toast("Code retiré")); });
+function lockNow(){ if(!S.profile.pin) return; $("lock").classList.add("on"); $("pinIn").value=""; $("pinMsg").textContent=""; setTimeout(()=>{ try{ $("pinIn").focus(); }catch(e){} },50); }
+$("pinIn").addEventListener("input",async()=>{
+  const p=S.profile.pin; const v=$("pinIn").value; if(!p||v.length<p.len) return;
+  if(await hashPin(v,p.salt)===p.hash){ $("lock").classList.remove("on"); $("pinIn").value=""; }
+  else { $("pinMsg").textContent="Code incorrect"; $("pinIn").value=""; }
+});
+let hiddenAt=0;
+document.addEventListener("visibilitychange",()=>{ if(document.hidden) hiddenAt=Date.now(); else if(hiddenAt && Date.now()-hiddenAt>60000) lockNow(); });
+
 // ---------- Boot ----------
 store=localAdapter(); store.start();
 try{ if(navigator.storage&&navigator.storage.persist) navigator.storage.persist(); }catch(e){}
 $("status").textContent="Enregistré sur ce téléphone";
+lockNow();
 })();
 </script>
 </body>
